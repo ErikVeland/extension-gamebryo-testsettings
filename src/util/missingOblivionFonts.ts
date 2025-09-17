@@ -27,16 +27,16 @@ function missingOblivionFont(store: Redux.Store<types.IState>,
 
   const fonts: string[] = [];
   Object.keys(iniFile.data.Fonts || {})
-      .forEach((key: string) => {
-        if (!defaultFontSet.has(iniFile.data.Fonts[key].toLowerCase())) {
-          fonts.push(iniFile.data.Fonts[key]);
-        }
-      });
+    .forEach((key: string) => {
+      if (!defaultFontSet.has(iniFile.data.Fonts[key].toLowerCase())) {
+        fonts.push(iniFile.data.Fonts[key]);
+      }
+    });
 
   return Promise.each(fonts, (font: string) =>
     fs.statAsync(path.join(discovery.path, font))
       .catch(() => { missingFonts.push(font); }))
-  .then(() => Promise.resolve(missingFonts));
+    .then(() => Promise.resolve(missingFonts));
 }
 
 export default missingOblivionFont;

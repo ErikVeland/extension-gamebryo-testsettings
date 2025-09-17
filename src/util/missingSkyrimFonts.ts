@@ -5,7 +5,7 @@ import { fs, types, util } from 'vortex-api';
 function missingSkyrimFonts(state: types.IState, skyrimDefaultFonts: Set<string>,
                             gameId: string): Promise<string[]> {
   const gameDiscovery: types.IDiscoveryResult = util.getSafe(state,
-    ['settings', 'gameMode', 'discovered', gameId], undefined);
+                                                             ['settings', 'gameMode', 'discovered', gameId], undefined);
   const game = util.getGame(gameId);
   const modPath = game.getModPaths(gameDiscovery.path)[''];
   const fontconfigTxt = path.join(modPath, 'interface', 'fontconfig.txt');
@@ -16,7 +16,7 @@ function missingSkyrimFonts(state: types.IState, skyrimDefaultFonts: Set<string>
       const rows = fontconfig.toString().split('\n');
       const fonts: string[] =
         rows.filter(row => row.startsWith('fontlib '))
-            .map(row => row.trim().replace(/^fontlib +["'](.*)["'].*/, '$1').toLowerCase());
+          .map(row => row.trim().replace(/^fontlib +["'](.*)["'].*/, '$1').toLowerCase());
 
       // filter the known fonts shipped with the game
       const removedFonts = fonts

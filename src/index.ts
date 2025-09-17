@@ -48,37 +48,37 @@ function testOblivionFontsImpl(api: types.IExtensionApi) {
   let iniFile: IniFile<any>;
 
   return parser.read(iniPath(gameId))
-  .then((iniFileIn: IniFile<any>) => {
-    iniFile = iniFileIn;
-    return missingOblivionFont(store, iniFile, gameId);
-  })
-  .then((missingFonts: string[]) => {
+    .then((iniFileIn: IniFile<any>) => {
+      iniFile = iniFileIn;
+      return missingOblivionFont(store, iniFile, gameId);
+    })
+    .then((missingFonts: string[]) => {
 
-    if (missingFonts.length === 0) {
-      return Promise.resolve(undefined);
-    }
+      if (missingFonts.length === 0) {
+        return Promise.resolve(undefined);
+      }
 
-    const fontList = missingFonts.join('\n');
+      const fontList = missingFonts.join('\n');
 
-    return Promise.resolve({
-      description: {
-        short: 'Fonts missing.',
-        long:
+      return Promise.resolve({
+        description: {
+          short: 'Fonts missing.',
+          long:
             'Fonts referenced in oblivion.ini don\'t seem to be installed:\n' +
                 fontList,
-      },
-      severity: 'error' as types.ProblemSeverity,
-      automaticFix: () => fixOblivionFonts(iniFile, missingFonts, gameId),
-    });
-  })
-  .catch((err: Error) =>
-    Promise.resolve({
-      description: {
-        short: 'Failed to read Oblivion.ini.',
-        long: err.toString(),
-      },
-      severity: 'error' as types.ProblemSeverity,
-    }));
+        },
+        severity: 'error' as types.ProblemSeverity,
+        automaticFix: () => fixOblivionFonts(iniFile, missingFonts, gameId),
+      });
+    })
+    .catch((err: Error) =>
+      Promise.resolve({
+        description: {
+          short: 'Failed to read Oblivion.ini.',
+          long: err.toString(),
+        },
+        severity: 'error' as types.ProblemSeverity,
+      }));
 }
 
 const defaultFonts: { [gameId: string]: Set<string> } = {};
@@ -88,7 +88,7 @@ function testSkyrimFontsImpl(context: types.IExtensionContext) {
   const gameId = selectors.activeGameId(store.getState());
 
   const gameDiscovery: types.IDiscoveryResult = util.getSafe(store.getState(),
-    ['settings', 'gameMode', 'discovered', gameId], undefined);
+                                                             ['settings', 'gameMode', 'discovered', gameId], undefined);
 
   if (['skyrim', 'enderal', 'skyrimse', 'skyrimvr'].indexOf(gameId) === -1) {
     return Promise.resolve(undefined);
@@ -106,43 +106,43 @@ function testSkyrimFontsImpl(context: types.IExtensionContext) {
   const prom = defaultFonts[gameId] !== undefined
     ? Promise.resolve(undefined)
     : context.api.openArchive(interfacePath)
-    .then((archive: util.Archive) => archive.readDir('interface')
-      .tap(() => {
+      .then((archive: util.Archive) => archive.readDir('interface')
+        .tap(() => {
         // We don't need the archive open anymore. Usually we would just
         //  leave it to the GC to release the file handle whenever V8 decides
         //  to do it; but in this case the user might want to replace it entirely
         //  with a mod (stupid I know) https://github.com/Nexus-Mods/Vortex/issues/11672
-        if (archive['mHandler']?.closeArchive !== undefined) {
-          archive['mHandler'].closeArchive();
+          if (archive['mHandler']?.closeArchive !== undefined) {
+            archive['mHandler'].closeArchive();
+          }
+          archive = null;
+        }))
+      .then((files: string[]) => {
+        defaultFonts[gameId] = new Set<string>(files
+          .filter(name => path.extname(name) === '.swf')
+          .map(name => path.join('interface', name)));
+      })
+      .catch((err: Error) => {
+        if (err instanceof util.NotSupportedError) {
+          log('info', 'Not checking font list because bsa archive support not available');
+          return Promise.reject(err);
         }
-        archive = null;
-      }))
-    .then((files: string[]) => {
-      defaultFonts[gameId] = new Set<string>(files
-        .filter(name => path.extname(name) === '.swf')
-        .map(name => path.join('interface', name)));
-    })
-    .catch((err: Error) => {
-      if (err instanceof util.NotSupportedError) {
-        log('info', 'Not checking font list because bsa archive support not available');
-        return Promise.reject(err);
-      }
-      return fs.statAsync(interfacePath)
-        .then(() => {
-          context.api.showErrorNotification('Failed to read default fonts', err, {
-            message: interfacePath,
-            allowReport: false,
+        return fs.statAsync(interfacePath)
+          .then(() => {
+            context.api.showErrorNotification('Failed to read default fonts', err, {
+              message: interfacePath,
+              allowReport: false,
+            });
+            return Promise.reject(new util.ProcessCanceled('default fonts unknown'));
+          })
+          .catch(() => {
+            context.api.showErrorNotification('"Skyrim - Interface.bsa" appears to be missing', err, {
+              id: 'skyrim_interface_bsa_missing',
+              allowReport: false,
+            });
+            return Promise.reject(new util.ProcessCanceled('default fonts unknown'));
           });
-          return Promise.reject(new util.ProcessCanceled('default fonts unknown'));
-        })
-        .catch(() => {
-          context.api.showErrorNotification('"Skyrim - Interface.bsa" appears to be missing', err, {
-            id: 'skyrim_interface_bsa_missing',
-            allowReport: false,
-          });
-          return Promise.reject(new util.ProcessCanceled('default fonts unknown'));
-        });
-    });
+      });
 
   return prom
     .then(() => missingSkyrimFonts(store.getState(), defaultFonts[gameId], gameId))
